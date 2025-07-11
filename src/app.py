@@ -1,5 +1,5 @@
 def hello():
-    return "Hello from Agentic Build System!"
+    return "Hello World from Agentic Build System!"
 
 
 if __name__ == "__main__":
