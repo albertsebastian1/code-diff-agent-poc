@@ -1,26 +1,33 @@
+name: Agentic Docker Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
 jobs:
   check-diff:
+    name: 🔍 Run Code Diff Agent
     runs-on: ubuntu-latest
+    outputs:
+      build-required: ${{ steps.check.outputs.build_required }}
     steps:
-      - uses: actions/checkout@v3
+      - name: 🧾 Checkout Repo
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          fetch-depth: 2  # so Git diff works
 
-      - uses: actions/setup-python@v4
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - run: pip install GitPython
-
-      - id: diff-agent
-        run: |
-          python code_diff_agent.py
-        env:
-          BASE_COMMIT: HEAD~1  # Optional override
-
-      - name: Read build trigger
+      - name: 🧠 Run Code Diff Agent
         id: check
         run: |
+          pip install GitPython
+          python code_diff_agent.py
           if grep -q 'trigger=true' build_trigger; then
             echo "build_required=true" >> $GITHUB_OUTPUT
           else
@@ -28,9 +35,11 @@ jobs:
           fi
 
   docker-build:
+    name: 🐳 Conditional Docker Build
     needs: check-diff
-    if: needs.check-diff.outputs.build_required == 'true'
+    if: needs.check-diff.outputs.build-required == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: docker build -t myapp:latest .
+      - name: Docker Build
+        run: docker build -t agentic-app:latest .
