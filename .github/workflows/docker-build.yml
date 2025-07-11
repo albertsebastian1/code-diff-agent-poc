@@ -1,0 +1,36 @@
+jobs:
+  check-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - run: pip install GitPython
+
+      - id: diff-agent
+        run: |
+          python code_diff_agent.py
+        env:
+          BASE_COMMIT: HEAD~1  # Optional override
+
+      - name: Read build trigger
+        id: check
+        run: |
+          if grep -q 'trigger=true' build_trigger; then
+            echo "build_required=true" >> $GITHUB_OUTPUT
+          else
+            echo "build_required=false" >> $GITHUB_OUTPUT
+          fi
+
+  docker-build:
+    needs: check-diff
+    if: needs.check-diff.outputs.build_required == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t myapp:latest .
